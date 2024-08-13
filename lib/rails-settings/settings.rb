@@ -43,8 +43,8 @@ class Settings < ActiveRecord::Base
 
   #retrieve all settings as a hash (optionally starting with a given namespace)
   def self.all(starting_with=nil)
-    options = starting_with ? { :conditions => "var LIKE '#{starting_with}%'"} : {}
-    vars = target_scoped.find(:all, {:select => 'var, value'}.merge(options))
+    target_scoped = target_scoped.where("var LIKE ?", "#{starting_with}%") unless starting_with.nil?
+    vars = target_scoped.select("var, value")
     
     result = {}
     vars.each do |record|
@@ -70,7 +70,7 @@ class Settings < ActiveRecord::Base
   
   #set a setting value by [] notation
   def self.[]=(var_name, value)
-    record = target_scoped.find_or_initialize_by_var(var_name.to_s)
+    record = target_scoped.find_or_initialize_by(var: var_name)
     record.value = value
     record.save!
     value
@@ -89,7 +89,7 @@ class Settings < ActiveRecord::Base
   end
 
   def self.target(var_name)
-    target_scoped.find_by_var(var_name.to_s)
+    target_scoped.find_by(var: var_name)
   end
   
   #get the value field, YAML decoded
@@ -103,7 +103,7 @@ class Settings < ActiveRecord::Base
   end
   
   def self.target_scoped
-    Settings.scoped_by_target_type_and_target_id(target_type, target_id)
+    where(target_type: target_type, target_id: target_id)
   end
   
   #Deprecated!
